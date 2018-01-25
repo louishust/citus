@@ -136,7 +136,6 @@ static List * GroupInsertValuesByShardId(List *insertValuesList);
 static List * ExtractInsertValuesList(Query *query, Var *partitionColumn);
 static bool MultiRouterPlannableQuery(Query *query,
 									  RelationRestrictionContext *restrictionContext);
-static DeferredErrorMessage * ErrorIfQueryHasModifyingCTE(Query *queryTree);
 static RangeTblEntry * GetUpdateOrDeleteRTE(List *rangeTableList);
 static bool UpdateOrDeleteRTE(RangeTblEntry *rangeTableEntry);
 static bool SelectsFromDistributedTable(List *rangeTableList);
@@ -246,13 +245,6 @@ CreateSingleTaskRouterPlan(Query *originalQuery, Query *query,
 	DistributedPlan *distributedPlan = CitusMakeNode(DistributedPlan);
 
 	distributedPlan->operation = query->commandType;
-
-	/* FIXME: this should probably rather be inlined into CreateRouterPlan */
-	distributedPlan->planningError = ErrorIfQueryHasModifyingCTE(query);
-	if (distributedPlan->planningError)
-	{
-		return distributedPlan;
-	}
 
 	/* we cannot have multi shard update/delete query via this code path */
 	job = RouterJob(originalQuery, restrictionContext, &distributedPlan->planningError);
@@ -2566,42 +2558,6 @@ CopyRelationRestrictionContext(RelationRestrictionContext *oldContext)
 	}
 
 	return newContext;
-}
-
-
-/*
- * ErrorIfQueryHasModifyingCTE checks if the query contains modifying common table
- * expressions and errors out if it does.
- */
-static DeferredErrorMessage *
-ErrorIfQueryHasModifyingCTE(Query *queryTree)
-{
-	ListCell *cteCell = NULL;
-
-	Assert(queryTree->commandType == CMD_SELECT);
-
-	foreach(cteCell, queryTree->cteList)
-	{
-		CommonTableExpr *cte = (CommonTableExpr *) lfirst(cteCell);
-		Query *cteQuery = (Query *) cte->ctequery;
-
-		/*
-		 * Here we only check for command type of top level query. Normally there can be
-		 * nested CTE, however PostgreSQL dictates that data-modifying statements must
-		 * be at top level of CTE. Therefore it is OK to just check for top level.
-		 * Similarly, we do not need to check for subqueries.
-		 */
-		if (cteQuery->commandType != CMD_SELECT)
-		{
-			return DeferredError(ERRCODE_FEATURE_NOT_SUPPORTED,
-								 "data-modifying statements are not supported in "
-								 "the WITH clauses of distributed queries",
-								 NULL, NULL);
-		}
-	}
-
-	/* everything OK */
-	return NULL;
 }
 
 

@@ -262,15 +262,6 @@ RecursivelyPlanCTEs(Query *query, RecursivePlanningContext *planningContext)
 		return NULL;
 	}
 
-	if (query->hasModifyingCTE)
-	{
-		/* we could easily support these, but it's a little scary */
-		return DeferredError(ERRCODE_FEATURE_NOT_SUPPORTED,
-							 "data-modifying statements are not supported in "
-							 "the WITH clauses of distributed queries",
-							 NULL, NULL);
-	}
-
 	if (query->hasRecursive)
 	{
 		return DeferredError(ERRCODE_FEATURE_NOT_SUPPORTED,

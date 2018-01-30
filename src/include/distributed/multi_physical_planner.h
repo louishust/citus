@@ -146,7 +146,7 @@ typedef struct MapMergeJob
 /*
  * Task represents an executable unit of work. We conceptualize our tasks into
  * compute and data fetch task types. SQL, map, and merge tasks are considered
- * as compute tasks; and shard fetch, map fetch, and merge fetch tasks are data
+ * as compute tasks; and map fetch, and merge fetch tasks are data
  * fetch tasks. We also forward declare the task execution struct here to avoid
  * including the executor header files.
  *

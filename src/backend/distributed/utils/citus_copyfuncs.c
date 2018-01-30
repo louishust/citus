@@ -267,7 +267,6 @@ CopyNodeTaskExecution(COPYFUNC_ARGS)
 	COPY_SCALAR_FIELD(connectStartTime);
 	COPY_SCALAR_FIELD(currentNodeIndex);
 	COPY_SCALAR_FIELD(querySourceNodeIndex);
-	COPY_SCALAR_FIELD(dataFetchTaskIndex);
 	COPY_SCALAR_FIELD(failureCount);
 }
 

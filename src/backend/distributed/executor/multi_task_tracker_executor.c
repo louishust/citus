@@ -1838,9 +1838,9 @@ TransmitTrackerConnectionId(TaskTracker *transmitTracker, Task *task)
  * ConstrainedTaskList finds the given task's constraint group within the given
  * task and execution list. We define a constraint group as all tasks that need
  * to be assigned (or reassigned) to the same task tracker for query execution
- * to complete. At a high level, compute tasks and their data fetch dependencies
- * are part of the same constraint group. Also, the transitive closure of tasks
- * that have the same merge task dependency are part of one constraint group.
+ * to complete. At a high level, compute tasks are part of the same constraint
+ * group. Also, the transitive closure of tasks that have the same merge task
+ * dependency are part of one constraint group.
  */
 static List *
 ConstrainedTaskList(List *taskAndExecutionList, Task *task)
@@ -1906,8 +1906,7 @@ ConstrainedTaskList(List *taskAndExecutionList, Task *task)
 /*
  * ConstrainedNonMergeTaskList finds the constraint group for the given task,
  * assuming that the given task doesn't have any merge task dependencies. This
- * constraint group includes a compute task and its downstream data fetch task
- * dependencies.
+ * constraint group includes compute task.
  */
 static List *
 ConstrainedNonMergeTaskList(List *taskAndExecutionList, Task *task)

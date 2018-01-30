@@ -330,13 +330,11 @@ ManageTaskExecution(Task *task, TaskExecution *taskExecution,
 			ConnectStatus pollStatus = MultiClientConnectPoll(connectionId);
 
 			/*
-			 * If the connection is established, we reset the data fetch counter and
-			 * change our status to data fetching.
+			 * If the connection is established, we change our state based on
+			 * whether a coordinated transaction has been started.
 			 */
 			if (pollStatus == CLIENT_CONNECTION_READY)
 			{
-				taskExecution->dataFetchTaskIndex = -1;
-
 				if (InCoordinatedTransaction())
 				{
 					taskStatusArray[currentIndex] = EXEC_BEGIN_START;

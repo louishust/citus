@@ -140,7 +140,6 @@ struct TaskExecution
 	uint32 nodeCount;
 	uint32 currentNodeIndex;
 	uint32 querySourceNodeIndex; /* only applies to map fetch tasks */
-	int32 dataFetchTaskIndex;
 	uint32 failureCount;
 	bool criticalErrorOccurred;
 };

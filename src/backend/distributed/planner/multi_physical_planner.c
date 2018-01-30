@@ -581,6 +581,8 @@ BuildJobQuery(MultiNode *multiNode, List *dependedJobList)
 	Node *havingQual = NULL;
 	bool hasDistinctOn = false;
 	List *distinctClause = NIL;
+	bool hasWindowFuncs = false;
+	List *windowClause = NIL;
 
 	/* we start building jobs from below the collect node */
 	Assert(!CitusIsA(multiNode, MultiCollect));
@@ -630,6 +632,8 @@ BuildJobQuery(MultiNode *multiNode, List *dependedJobList)
 		targetList = copyObject(extendedOp->targetList);
 		distinctClause = extendedOp->distinctClause;
 		hasDistinctOn = extendedOp->hasDistinctOn;
+		windowClause = extendedOp->windowClause;
+		hasWindowFuncs = extendedOp->hasWindowFuncs;
 	}
 	else
 	{
@@ -644,7 +648,7 @@ BuildJobQuery(MultiNode *multiNode, List *dependedJobList)
 	if (updateColumnAttributes)
 	{
 		ListCell *columnCell = NULL;
-		List *columnList = pull_var_clause_default((Node *) targetList);
+		List *columnList = pull_var_clause_default((Node *) targetList);    /*DEPENDS ON THE master/worker QUERY pull_var_clause */
 		foreach(columnCell, columnList)
 		{
 			Var *column = (Var *) lfirst(columnCell);
@@ -673,7 +677,7 @@ BuildJobQuery(MultiNode *multiNode, List *dependedJobList)
 	if (updateColumnAttributes)
 	{
 		columnCell = NULL;
-		columnList = pull_var_clause_default((Node *) selectClauseList);
+		columnList = pull_var_clause_default((Node *) selectClauseList);    /*DEPENDS ON THE master/worker QUERY pull_var_clause */
 		foreach(columnCell, columnList)
 		{
 			Var *column = (Var *) lfirst(columnCell);
@@ -706,6 +710,8 @@ BuildJobQuery(MultiNode *multiNode, List *dependedJobList)
 	jobQuery->hasAggs = contain_agg_clause((Node *) targetList);
 	jobQuery->distinctClause = distinctClause;
 	jobQuery->hasDistinctOn = hasDistinctOn;
+	jobQuery->windowClause = windowClause;
+	jobQuery->hasWindowFuncs = hasWindowFuncs;
 
 	return jobQuery;
 }

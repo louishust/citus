@@ -936,6 +936,71 @@ BuildSubPlanResultQuery(Query *subquery, List *columnAliasList, uint64 planId,
 		columnNumber++;
 	}
 
+	/* build the target list and column definition list */
+	foreach(targetEntryCell, subquery->returningList)
+	{
+		TargetEntry *targetEntry = (TargetEntry *) lfirst(targetEntryCell);
+		Node *targetExpr = (Node *) targetEntry->expr;
+		char *columnName = targetEntry->resname;
+		Oid columnType = exprType(targetExpr);
+		Oid columnTypMod = exprTypmod(targetExpr);
+		Oid columnCollation = exprCollation(targetExpr);
+		Var *functionColumnVar = NULL;
+		TargetEntry *newTargetEntry = NULL;
+
+		if (targetEntry->resjunk)
+		{
+			continue;
+		}
+
+		funcColNames = lappend(funcColNames, makeString(columnName));
+		funcColTypes = lappend_int(funcColTypes, columnType);
+		funcColTypMods = lappend_int(funcColTypMods, columnTypMod);
+		funcColCollations = lappend_int(funcColCollations, columnCollation);
+
+		functionColumnVar = makeNode(Var);
+		functionColumnVar->varno = 1;
+		functionColumnVar->varattno = columnNumber;
+		functionColumnVar->vartype = columnType;
+		functionColumnVar->vartypmod = columnTypMod;
+		functionColumnVar->varcollid = columnCollation;
+		functionColumnVar->varlevelsup = 0;
+		functionColumnVar->varnoold = 1;
+		functionColumnVar->varoattno = columnNumber;
+		functionColumnVar->location = -1;
+
+		newTargetEntry = makeNode(TargetEntry);
+		newTargetEntry->expr = (Expr *) functionColumnVar;
+		newTargetEntry->resno = columnNumber;
+
+		/*
+		 * Rename the column only if a column alias is defined.
+		 * Notice that column alias count could be less than actual
+		 * column count. We only use provided aliases and keep the
+		 * original column names if no alias is defined.
+		 */
+		if (columnAliasCount >= columnNumber)
+		{
+			Value *columnAlias = (Value *) list_nth(columnAliasList, columnNumber - 1);
+			Assert(IsA(columnAlias, String));
+			newTargetEntry->resname = strVal(columnAlias);
+		}
+		else
+		{
+			newTargetEntry->resname = columnName;
+		}
+		newTargetEntry->resjunk = false;
+
+		targetList = lappend(targetList, newTargetEntry);
+
+		if (useBinaryCopyFormat && !CanUseBinaryCopyFormatForType(columnType))
+		{
+			useBinaryCopyFormat = false;
+		}
+
+		columnNumber++;
+	}
+
 	/* build the result_id parameter for the call to read_intermediate_result */
 	resultIdString = GenerateResultId(planId, subPlanId);
 

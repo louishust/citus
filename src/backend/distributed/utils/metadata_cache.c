@@ -146,6 +146,8 @@ static HTAB *DistShardCacheHash = NULL;
 
 /* Hash table for informations about worker nodes */
 static HTAB *WorkerNodeHash = NULL;
+static WorkerNode **WorkerNodeArray = NULL;
+static int WorkerNodeCount = 0;
 static bool workerNodeHashValid = false;
 
 /* default value is -1, for coordinator it's 0 and for worker nodes > 0 */
@@ -168,6 +170,8 @@ static ShardInterval ** SortShardIntervalArray(ShardInterval **shardIntervalArra
 											   shardIntervalSortCompareFunction);
 static bool HasUniformHashDistribution(ShardInterval **shardIntervalArray,
 									   int shardIntervalArrayLength);
+static WorkerNode ** GetWorkerNodeArray(int *workerNodeCount);
+static void PrepareWorkerNodeCache(void);
 static bool HasUninitializedShardInterval(ShardInterval **sortedShardIntervalArray,
 										  int shardCount);
 static bool CheckInstalledVersion(int elevel);
@@ -511,15 +515,14 @@ ResolveGroupShardPlacement(GroupShardPlacement *groupShardPlacement,
 static WorkerNode *
 LookupNodeForGroup(uint32 groupId)
 {
-	WorkerNode *workerNode = NULL;
-	HASH_SEQ_STATUS status;
-	HTAB *workerNodeHash = GetWorkerNodeHash();
+	int workerNodeCount = 0;
+	WorkerNode **workerNodeArray = GetWorkerNodeArray(&workerNodeCount);
 	bool foundAnyNodes = false;
+	int workerNodeIndex = 0;
 
-	hash_seq_init(&status, workerNodeHash);
-
-	while ((workerNode = hash_seq_search(&status)) != NULL)
+	for (workerNodeIndex = 0; workerNodeIndex < workerNodeCount; workerNodeIndex++)
 	{
+		WorkerNode *workerNode = workerNodeArray[workerNodeIndex];
 		uint32 workerNodeGroupId = workerNode->groupId;
 		if (workerNodeGroupId != groupId)
 		{
@@ -530,7 +533,6 @@ LookupNodeForGroup(uint32 groupId)
 
 		if (WorkerNodeIsReadable(workerNode))
 		{
-			hash_seq_term(&status);
 			return workerNode;
 		}
 	}
@@ -2463,12 +2465,49 @@ InitializeDistTableCache(void)
 
 
 /*
- * GetWorkerNodeHash is a wrapper around InitializeWorkerNodeCache(). It
- * triggers InitializeWorkerNodeCache when the workerHash is invalid. Otherwise,
- * it returns the hash.
+ * GetWorkerNodeArray returns the worker node data as an array of pointers to the
+ * WorkerNode structs allocated in WorkerNode hash. It also sets the integer pointed
+ * to by workerNodeCountResult to the current worker node count.
+ *
+ * The array is returned from the cache, if the cache is not (yet) valid, it is first
+ * rebuilt.
+ */
+static WorkerNode **
+GetWorkerNodeArray(int *workerNodeCountResult)
+{
+	PrepareWorkerNodeCache();
+
+	if (workerNodeCountResult != NULL)
+	{
+		*workerNodeCountResult = WorkerNodeCount;
+	}
+
+	return WorkerNodeArray;
+}
+
+
+/*
+ * GetWorkerNodeHash returns the worker node data as a hash with the nodename and
+ * nodeport as a key.
+ *
+ * The hash is returned from the cache, if the cache is not (yet) valid, it is first
+ * rebuilt.
  */
 HTAB *
 GetWorkerNodeHash(void)
+{
+	PrepareWorkerNodeCache();
+
+	return WorkerNodeHash;
+}
+
+
+/*
+ * PrepareWorkerNodeCache makes sure the worker node data from pg_dist_node is cached,
+ * if it is not already cached.
+ */
+static void
+PrepareWorkerNodeCache(void)
 {
 	InitializeCaches(); /* ensure relevant callbacks are registered */
 
@@ -2490,8 +2529,6 @@ GetWorkerNodeHash(void)
 
 		workerNodeHashValid = true;
 	}
-
-	return WorkerNodeHash;
 }
 
 
@@ -2510,8 +2547,14 @@ InitializeWorkerNodeCache(void)
 	int hashFlags = 0;
 	long maxTableSize = (long) MaxWorkerNodesTracked;
 	bool includeNodesFromOtherClusters = false;
+	int workerNodeIndex = 0;
 
 	InitializeCaches();
+
+	if (WorkerNodeArray != NULL)
+	{
+		pfree(WorkerNodeArray);
+	}
 
 	/*
 	 * Create the hash that holds the worker nodes. The key is the combination of
@@ -2533,6 +2576,10 @@ InitializeWorkerNodeCache(void)
 
 	/* read the list from pg_dist_node */
 	workerNodeList = ReadWorkerNodes(includeNodesFromOtherClusters);
+
+	WorkerNodeCount = list_length(workerNodeList);
+	WorkerNodeArray = MemoryContextAlloc(CacheMemoryContext,
+										 sizeof(WorkerNode *) * WorkerNodeCount);
 
 	/* iterate over the worker node list */
 	foreach(workerNodeCell, workerNodeList)
@@ -2557,6 +2604,8 @@ InitializeWorkerNodeCache(void)
 		workerNode->isActive = currentNode->isActive;
 		workerNode->nodeRole = currentNode->nodeRole;
 		strlcpy(workerNode->nodeCluster, currentNode->nodeCluster, NAMEDATALEN);
+
+		WorkerNodeArray[workerNodeIndex++] = workerNode;
 
 		if (handleFound)
 		{

@@ -879,8 +879,8 @@ DeferErrorIfFromClauseRecurs(Query *queryTree)
 		return DeferredError(ERRCODE_FEATURE_NOT_SUPPORTED,
 							 "cannot pushdown the subquery",
 							 "Complex subqueries and CTEs are not allowed in "
-							 "the FROM clause when the query has subqueries in the "
-							 "WHERE clause", NULL);
+							 "the FROM clause when the query has correlated subqueries "
+							 "in the WHERE clause", NULL);
 	}
 	else if (recurType == RECURRING_TUPLES_EMPTY_JOIN_TREE)
 	{

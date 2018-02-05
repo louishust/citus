@@ -423,7 +423,62 @@ FROM
      ) as bar  
 WHERE foo.user_id = bar.user_id;
 ERROR:  recursive CTEs are not supported in distributed queries
+--CTEs can be used as a recurring tuple with subqueries in WHERE
+WITH event_id AS (
+	SELECT user_id as events_user_id, time as events_time, event_type
+	FROM events_table
+)
+SELECT
+	count(*) 
+FROM
+	event_id
+WHERE
+	events_user_id IN (SELECT user_id FROM users_table);
+DEBUG:  generating subplan 45_1 for CTE event_id: SELECT user_id AS events_user_id, "time" AS events_time, event_type FROM public.events_table
+DEBUG:  generating subplan 45_2 for subquery SELECT user_id FROM public.users_table
+ count 
+-------
+   101
+(1 row)
+
+	
+--Correlated subqueries can not be used in WHERE clause
+WITH event_id AS (
+	SELECT user_id as events_user_id, time as events_time, event_type
+	FROM events_table
+)
+SELECT
+	count(*) 
+FROM
+	event_id
+WHERE
+	events_user_id IN (SELECT user_id FROM users_table where users_table.time = events_time);
+DEBUG:  generating subplan 48_1 for CTE event_id: SELECT user_id AS events_user_id, "time" AS events_time, event_type FROM public.events_table
+ERROR:  cannot pushdown the subquery
+DETAIL:  Complex subqueries and CTEs are not allowed in the FROM clause when the query has correlated subqueries in the WHERE clause
 SET client_min_messages TO DEFAULT;
 DROP SCHEMA subquery_and_ctes CASCADE;
 NOTICE:  drop cascades to table users_table_local
 SET search_path TO public;
+-- Recurring tuples as empty join tree
+SELECT 
+	* 
+FROM (
+	SELECT 
+		1 AS id,
+		2 AS value_1, 
+		3 AS value_3
+	) AS tt1 
+WHERE 
+	id 
+IN (
+	SELECT 
+		user_id 
+	FROM 
+	events_table
+   );
+ id | value_1 | value_3 
+----+---------+---------
+  1 |       2 |       3
+(1 row)
+

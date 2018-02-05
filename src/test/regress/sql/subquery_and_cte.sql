@@ -317,8 +317,51 @@ FROM
      ) as bar  
 WHERE foo.user_id = bar.user_id;
 
+--CTEs can be used as a recurring tuple with subqueries in WHERE
+WITH event_id AS (
+	SELECT user_id as events_user_id, time as events_time, event_type
+	FROM events_table
+)
+SELECT
+	count(*) 
+FROM
+	event_id
+WHERE
+	events_user_id IN (SELECT user_id FROM users_table);
+
+	
+--Correlated subqueries can not be used in WHERE clause
+WITH event_id AS (
+	SELECT user_id as events_user_id, time as events_time, event_type
+	FROM events_table
+)
+SELECT
+	count(*) 
+FROM
+	event_id
+WHERE
+	events_user_id IN (SELECT user_id FROM users_table where users_table.time = events_time);
 
 SET client_min_messages TO DEFAULT;
 
 DROP SCHEMA subquery_and_ctes CASCADE;
 SET search_path TO public;
+
+
+-- Recurring tuples as empty join tree
+SELECT 
+	* 
+FROM (
+	SELECT 
+		1 AS id,
+		2 AS value_1, 
+		3 AS value_3
+	) AS tt1 
+WHERE 
+	id 
+IN (
+	SELECT 
+		user_id 
+	FROM 
+	events_table
+   );

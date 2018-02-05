@@ -996,7 +996,8 @@ BuildWaitEventSet(MultiConnection **allConnections, int totalConnectionCount,
 
 	for (connectionIndex = 0; connectionIndex < pendingConnectionCount; connectionIndex++)
 	{
-		MultiConnection *connection = allConnections[pendingConnectionsStartIndex + connectionIndex];
+		MultiConnection *connection = allConnections[pendingConnectionsStartIndex +
+													 connectionIndex];
 		int socket = PQsocket(connection->pgConn);
 
 		/*

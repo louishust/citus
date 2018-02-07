@@ -74,10 +74,15 @@ PG_FUNCTION_INFO_V1(worker_fetch_query_results_file);
 PG_FUNCTION_INFO_V1(worker_apply_shard_ddl_command);
 PG_FUNCTION_INFO_V1(worker_apply_inter_shard_ddl_command);
 PG_FUNCTION_INFO_V1(worker_apply_sequence_command);
+PG_FUNCTION_INFO_V1(worker_append_table_to_shard);
+
+/*
+ * Following UDFs are stub functions, you can check their comments for more
+ * detail.
+ */
 PG_FUNCTION_INFO_V1(worker_fetch_regular_table);
 PG_FUNCTION_INFO_V1(worker_fetch_foreign_file);
 PG_FUNCTION_INFO_V1(master_expire_table_cache);
-PG_FUNCTION_INFO_V1(worker_append_table_to_shard);
 
 
 /*
@@ -522,35 +527,38 @@ worker_apply_sequence_command(PG_FUNCTION_ARGS)
 
 
 /*
- * worker_fetch_regular_table UDF is dropped on SQL files.
+ * worker_fetch_regular_table UDF is a stub UDF to install Citus flawlessly.
+ * Otherwise we need to delete them from our sql files, which is confusing
  */
 Datum
 worker_fetch_regular_table(PG_FUNCTION_ARGS)
 {
-	ereport(ERROR, (errmsg("worker_fetch_regular_table UDF is dropped")));
-	PG_RETURN_VOID();
+	ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					errmsg("this function is deprecated and no longer is used")));
 }
 
 
 /*
- * worker_fetch_foreign_file UDF is dropped on SQL files.
+ * worker_fetch_foreign_file UDF is a stub UDF to install Citus flawlessly.
+ * Otherwise we need to delete them from our sql files, which is confusing
  */
 Datum
 worker_fetch_foreign_file(PG_FUNCTION_ARGS)
 {
-	ereport(ERROR, (errmsg("worker_fetch_foreign_file UDF is dropped")));
-	PG_RETURN_VOID();
+	ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					errmsg("this function is deprecated and no longer is used")));
 }
 
 
 /*
- * master_expire_table_cache UDF is dropped on SQL files.
+ * master_expire_table_cache UDF is a stub UDF to install Citus flawlessly.
+ * Otherwise we need to delete them from our sql files, which is confusing
  */
 Datum
 master_expire_table_cache(PG_FUNCTION_ARGS)
 {
-	ereport(ERROR, (errmsg("master_expire_table_cache UDF is dropped")));
-	PG_RETURN_VOID();
+	ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					errmsg("this function is deprecated and no longer is used")));
 }
 
 

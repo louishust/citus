@@ -3751,7 +3751,7 @@ FragmentIntervalString(ShardInterval *fragmentInterval)
 
 
 /*
- * DataFetchTaskList builds a data fetch task for every shard in the given shard
+ * DataFetchTaskList builds a merge fetch task for every shard in the given shard
  * list, appends these data fetch tasks into a list, and returns this list.
  */
 static List *
@@ -4002,10 +4002,8 @@ AnchorShardId(List *fragmentList, uint32 anchorRangeTableId)
 
 /*
  * PruneSqlTaskDependencies iterates over each sql task from the given sql task
- * list, and prunes away any data fetch tasks which are redundant or not needed
- * for the completion of that task. Specifically the function prunes away data
- * fetch tasks for the anchor shard and any merge-fetch tasks, as the task
- * assignment algorithm ensures co-location of these tasks.
+ * list, and prunes away merge-fetch tasks, as the task assignment algorithm
+ * ensures co-location of these tasks.
  */
 static List *
 PruneSqlTaskDependencies(List *sqlTaskList)
@@ -4661,31 +4659,6 @@ TaskListDifference(const List *list1, const List *list2)
 	foreach(taskCell, list1)
 	{
 		if (!TaskListMember(list2, lfirst(taskCell)))
-		{
-			resultList = lappend(resultList, lfirst(taskCell));
-		}
-	}
-
-	return resultList;
-}
-
-
-/*
- * TaskListUnion generate the union of two tasks lists. This is calculated by
- * copying list1 via list_copy(), then adding to it all the members of list2
- * that aren't already in list1.
- */
-List *
-TaskListUnion(const List *list1, const List *list2)
-{
-	const ListCell *taskCell = NULL;
-	List *resultList = NIL;
-
-	resultList = list_copy(list1);
-
-	foreach(taskCell, list2)
-	{
-		if (!TaskListMember(resultList, lfirst(taskCell)))
 		{
 			resultList = lappend(resultList, lfirst(taskCell));
 		}

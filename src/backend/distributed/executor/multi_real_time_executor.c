@@ -390,8 +390,8 @@ ManageTaskExecution(Task *task, TaskExecution *taskExecution,
 			/*
 			 * On task failure, we close the connection. We also reset our execution
 			 * status assuming that we might fail on all other worker nodes and come
-			 * back to this failed node. In that case, we will retry the same fetch
-			 * and compute task(s) on this node again.
+			 * back to this failed node. In that case, we will retry compute task(s)
+			 * on this node again.
 			 */
 			int32 connectionId = connectionIdArray[currentIndex];
 			MultiConnection *connection = MultiClientGetConnection(connectionId);
@@ -450,11 +450,6 @@ ManageTaskExecution(Task *task, TaskExecution *taskExecution,
 			}
 			else
 			{
-				/*
-				 * We skip data fetches when in a distributed transaction since
-				 * they cannot be performed in a transactional way (e.g. would
-				 * trigger deadlock detection).
-				 */
 				taskStatusArray[currentIndex] = EXEC_COMPUTE_TASK_START;
 				break;
 			}
@@ -490,11 +485,6 @@ ManageTaskExecution(Task *task, TaskExecution *taskExecution,
 			}
 			else
 			{
-				/*
-				 * We skip data fetches when in a distributed transaction since
-				 * they cannot be performed in a transactional way (e.g. would
-				 * trigger deadlock detection).
-				 */
 				taskStatusArray[currentIndex] = EXEC_COMPUTE_TASK_START;
 				break;
 			}
@@ -739,7 +729,6 @@ CancelRequestIfActive(TaskExecStatus taskStatus, int connectionId)
 	/*
 	 * We use the task status to determine if we have an active request being
 	 * processed by the worker node. If we do, we send a cancellation request.
-	 * Note that we don't cancel data fetch tasks, and allow them to complete.
 	 */
 	if (taskStatus == EXEC_COMPUTE_TASK_RUNNING)
 	{

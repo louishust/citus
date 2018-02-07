@@ -193,7 +193,7 @@ INSERT INTO repartition_udt_other values (12, '(2,3)'::test_udt, 'foo');
 SET client_min_messages = LOG;
 
 -- This query was intended to test "Query that should result in a repartition 
--- join on int column, and be empty." In order to remove broadcast logic, we 
+-- join on int column, and be empty." While removing broadcast logic, we 
 -- manually make the query router plannable.
 SELECT * FROM repartition_udt JOIN repartition_udt_other
     ON repartition_udt.pk = repartition_udt_other.pk

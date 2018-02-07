@@ -2069,8 +2069,7 @@ ReassignTaskList(List *taskList)
 
 	/*
 	 * As an optimization, we first find the SQL tasks whose results we already
-	 * fetched to the master node. We don't need to re-execute these SQL tasks
-	 * or their shard fetch dependencies.
+	 * fetched to the master node. We don't need to re-execute these SQL tasks.
 	 */
 	foreach(taskCell, taskList)
 	{
